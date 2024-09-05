@@ -17,7 +17,7 @@ this worth it for somebody.
 
 If you have a problem with it, please feel free to open an issue on this repo.
 
-It is recommended that you use the encluded Pipfile and Pipfile.lock to set
+It is recommended that you use the included Pipfile and Pipfile.lock to set
 up a pipenv for running this tool.
 
 Copyright 2024 - [Chris Knight](https://www.ghostwheel.com/)
