@@ -1,4 +1,4 @@
-# ovpn_converter
+# ovpn_converter.py
 Tool for converting OpenVPN configs from visz to ovpn.
 
 This quick and dirty tool will convert the zip compressed visz client config
