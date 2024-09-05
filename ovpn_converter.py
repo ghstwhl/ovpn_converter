@@ -1,14 +1,19 @@
 #!/usr/bin/env python
+"""Tool for converting OpnSense exported .visz configs to .ovpn"""
 import io
 import os
 import tarfile
-import zipfile
 import argparse
 import re
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
 
 def cli():
+    """Configure the command line options
+
+    Returns:
+        argparse.Namespace: Parsed data from command line options
+    """
     parser = argparse.ArgumentParser(description='Convert .visz files to .ovpn')
     parser.add_argument('--input', required=True)
     parser.add_argument('--output')
@@ -42,13 +47,17 @@ def visz_decode(file_path):
                     encryption_algorithm=serialization.NoEncryption()
                     ).decode('utf8').split('\n')
 
-                data['cert_bundle']['cert'] = certificate.public_bytes(encoding=serialization.Encoding.PEM).decode('utf8').split('\n')
+                data['cert_bundle']['cert'] = certificate.public_bytes(
+                    encoding=serialization.Encoding.PEM
+                    ).decode('utf8').split('\n')
 
                 data['cert_bundle']['ca'] = []
                 for cert in additional_certificates:
-                    pem = cert.public_bytes(encoding=serialization.Encoding.PEM).decode('utf8').split('\n')
+                    pem = cert.public_bytes(
+                        encoding=serialization.Encoding.PEM
+                        ).decode('utf8').split('\n')
                     for line in pem:
-                       data['cert_bundle']['ca'].append(line)
+                        data['cert_bundle']['ca'].append(line)
             else:
                 data[filename] = zipped.extractfile(filepath).read()
         return data
@@ -61,41 +70,41 @@ def create_ovpn_text_bundle(config):
     """
 
     if 'config' in config:
-        config_bundle = ['#-- Converted from OpnSense export with https://github.com/ghstwhl/ovpn_converter --#']
+        text_config = ['#-- Converted from OpnSense export with '
+                         'https://github.com/ghstwhl/ovpn_converter --#']
         for config_line in config['config']:
             if 'tls-crypt' in config_line:
-                config_bundle.append('<tls-crypt>')
+                text_config.append('<tls-crypt>')
                 for key_line in config['tls_key']:
-                   config_bundle.append(key_line) 
-                config_bundle.append('</tls-crypt>')
+                    text_config.append(key_line)
+                text_config.append('</tls-crypt>')
             elif 'pkcs12' in config_line:
                 for block_name in config['cert_bundle']:
-                    config_bundle.append(f"<{block_name}>")
+                    text_config.append(f"<{block_name}>")
                     for cert_line in config['cert_bundle'][block_name]:
-                        config_bundle.append(cert_line)
-                    config_bundle.append(f"</{block_name}>")
+                        text_config.append(cert_line)
+                    text_config.append(f"</{block_name}>")
             elif 'Config Auto Generated for Viscosity' in config_line:
                 pass
             else:
-                config_bundle.append(config_line) 
+                text_config.append(config_line)
 
-        return config_bundle
-            
+        return text_config
+
 if __name__ == '__main__':
     args = cli()
     results = re.fullmatch(r"^(.*/|)([^\/]*)\.(visz)$", args.input)
     if results is not None:
         if 'visz' == results.group(len(results.groups())):
-            config = visz_decode(args.input)
-            config_bundle = create_ovpn_text_bundle(config)
+            config_bundle = create_ovpn_text_bundle(visz_decode(args.input))
             if args.output is not None:
                 output_file = args.output
             else:
-                output_file = ""
-                for n in range(1,len(results.groups())):
+                output_file = results.group(1)
+                for n in range(2,len(results.groups())):
                     output_file += results.group(n)
                 output_file += ".ovpn"
-            with io.open(output_file, 'w') as out:
+            with io.open(output_file, 'w', encoding='utf-8') as out:
                 out.write(str('\n'.join(config_bundle)))
     else:
         results = re.fullmatch(r"^.*\.([^\.]+)$", args.input)
