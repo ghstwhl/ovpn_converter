@@ -107,7 +107,7 @@ if __name__ == '__main__':
             with io.open(output_file, 'w', encoding='utf-8') as out:
                 out.write(str('\n'.join(config_bundle)))
             print(f"New config written:  {output_file}")
-                
+
     else:
         results = re.fullmatch(r"^.*\.([^\.]+)$", args.input)
         print(f"{results.group(len(results.groups()))} is not a supported file type.")
